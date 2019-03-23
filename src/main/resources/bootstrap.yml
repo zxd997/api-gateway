@@ -1,0 +1,75 @@
+spring:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+  application:
+    name: api-gateway
+  #  datasource:
+  #    driver-class-name: com.mysql.cj.jdbc.Driver
+  #    username: root
+  #    password: root
+  #    url: jdbc:mysql://localhost:3306/cloud1?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false
+  #  jpa:
+  #    show-sql: true
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: CONFIG
+      profile: dev
+      label: release
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  #server:
+  #  port: 8081
+  #logging:
+  #  level:
+  #    root: info
+  #    com.cloud: debug
+  #  file: logs/${spring.application.name}.log
+
+  #负载均衡的策略 默认轮询 对RestTemplate的 如果是Feign还是默认轮询
+  #PRODUCT:
+  #  ribbon:
+  #    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+  ######
+  #ribbon:
+  #  eureka:
+  #    enabled: true
+
+  #配置中心的方式(拉取 服务配置 注意 应用的name必须写在当前配置文件中) 如果config服务启动多个端口 那么order应用 拉取配置是实现了负载均衡的（随机）
+
+#要是有超时错误是应为zuul的默认超时时间比较小，我们配置下zuul的超时时间，
+#因zuul启用了ribbon的负载均衡，还需要设置ribbon的超时时间，注意ribbon的超时时间要小于zuul超时时间 。
+zuul:
+  host:
+    connect-timeout-millis: 15000 #HTTP连接超时要比Hystrix的大
+    socket-timeout-millis: 60000  #socket超时
+  routes:
+    myDIYProduct: #自定义 url 其实就是应用名的替换
+      path: /myProduct/**
+      serviceId: product
+      #sensitiveHeaders: #不让它过滤头
+    #简洁写法 前面是serviceId
+    config: /myConfig/**
+  ignored-patterns: #排除某些路由 再次访问变为404
+    - /product/product/detest
+    - /myProduct/product/detest
+    - /**//product/list1 #2.通配符的写法
+  sensitive-headers:  # 敏感头设置：所有服务都传递cookie 不过滤任何
+ribbon:
+  ReadTimeout: 10000
+  ConnectTimeout: 10000
+#暴露所有
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+#过期了下面的
+#management:
+#  security:
+#    enabled: false
